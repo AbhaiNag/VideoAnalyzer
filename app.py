@@ -85,19 +85,13 @@ Correlate against:
 - **Software Engineering**: Platform Engineering, GitOps, AI-assisted development, SRE
 - **Emerging**: Spatial computing, Digital twins, Synthetic data, Federated learning
 
-Provide detailed, evidence-based analysis grounded in what is actually visible/audible in the content provided."""
+Provide detailed, evidence-based analysis grounded in what is actually visible in the content provided."""
 
 ANALYSIS_SCHEMA = {
     "type": "object",
     "properties": {
-        "executive_summary": {
-            "type": "string",
-            "description": "2-3 sentence executive summary of the technology and its significance"
-        },
-        "overall_score": {
-            "type": "integer",
-            "description": "Overall innovation score 0-100 (sum of four dimension scores)"
-        },
+        "executive_summary": {"type": "string"},
+        "overall_score": {"type": "integer"},
         "recommendation": {
             "type": "string",
             "enum": [
@@ -110,66 +104,23 @@ ANALYSIS_SCHEMA = {
         "scores": {
             "type": "object",
             "properties": {
-                "technology_currency": {
-                    "type": "integer",
-                    "description": "Score 0-25: How current and advanced is the technology stack"
-                },
-                "innovation_novelty": {
-                    "type": "integer",
-                    "description": "Score 0-25: How novel and differentiated is the approach"
-                },
-                "business_viability": {
-                    "type": "integer",
-                    "description": "Score 0-25: How strong is the business case and market opportunity"
-                },
-                "technical_depth": {
-                    "type": "integer",
-                    "description": "Score 0-25: How technically rigorous and deep is the implementation"
-                }
+                "technology_currency": {"type": "integer"},
+                "innovation_novelty": {"type": "integer"},
+                "business_viability": {"type": "integer"},
+                "technical_depth": {"type": "integer"}
             },
             "required": ["technology_currency", "innovation_novelty", "business_viability", "technical_depth"],
             "additionalProperties": False
         },
-        "technology_stack": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "List of technologies, frameworks, and platforms identified"
-        },
-        "cutting_edge_correlation": {
-            "type": "string",
-            "description": "How the technology correlates to current cutting-edge landscape"
-        },
-        "technology_analysis": {
-            "type": "string",
-            "description": "Detailed analysis of the technology components and architecture"
-        },
-        "business_case": {
-            "type": "string",
-            "description": "Analysis of the business opportunity, market size, and monetization potential"
-        },
-        "key_innovations": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "List of key innovative elements identified"
-        },
-        "business_opportunities": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "List of specific business opportunities this technology enables"
-        },
-        "improvement_areas": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "List of areas where the technology or presentation could be improved"
-        },
-        "market_positioning": {
-            "type": "string",
-            "description": "How this positions in the current market landscape"
-        },
-        "detailed_analysis": {
-            "type": "string",
-            "description": "Comprehensive detailed analysis covering all aspects of the evaluation"
-        }
+        "technology_stack": {"type": "array", "items": {"type": "string"}},
+        "cutting_edge_correlation": {"type": "string"},
+        "technology_analysis": {"type": "string"},
+        "business_case": {"type": "string"},
+        "key_innovations": {"type": "array", "items": {"type": "string"}},
+        "business_opportunities": {"type": "array", "items": {"type": "string"}},
+        "improvement_areas": {"type": "array", "items": {"type": "string"}},
+        "market_positioning": {"type": "string"},
+        "detailed_analysis": {"type": "string"}
     },
     "required": [
         "executive_summary", "overall_score", "recommendation", "scores",
@@ -182,33 +133,25 @@ ANALYSIS_SCHEMA = {
 
 
 def extract_video_frames(video_path: str, num_frames: int = 12) -> List[str]:
-    """Extract evenly-spaced frames from a video file, return as base64 JPEG strings."""
     if not HAS_AV:
         return []
-
     frames_b64 = []
     try:
         container = av.open(video_path)
         stream = container.streams.video[0]
-
         duration_seconds = float(stream.duration * stream.time_base) if stream.duration else None
         if duration_seconds is None:
             duration_seconds = float(container.duration / 1_000_000) if container.duration else 0
-
         if duration_seconds > 480:
             raise HTTPException(status_code=400, detail="Video exceeds 8-minute limit")
-
         if duration_seconds <= 0:
             duration_seconds = 60
-
         interval = duration_seconds / (num_frames + 1)
         seek_times = [interval * (i + 1) for i in range(num_frames)]
-
         for seek_time in seek_times:
             try:
                 seek_pts = int(seek_time / float(stream.time_base))
                 container.seek(seek_pts, stream=stream)
-
                 for frame in container.decode(video=0):
                     img = frame.to_image()
                     if HAS_PIL:
@@ -219,21 +162,17 @@ def extract_video_frames(video_path: str, num_frames: int = 12) -> List[str]:
                     break
             except Exception:
                 continue
-
         container.close()
     except HTTPException:
         raise
     except Exception as e:
         print(f"Frame extraction warning: {e}")
-
     return frames_b64
 
 
 def extract_pptx_text(file_path: str) -> str:
-    """Extract text content from a PPTX file."""
     if not HAS_PPTX:
         return ""
-
     try:
         prs = Presentation(file_path)
         slides_text = []
@@ -255,54 +194,64 @@ async def serve_index():
     index_path = Path("static/index.html")
     if index_path.exists():
         return HTMLResponse(content=index_path.read_text())
-    return HTMLResponse(content="<h1>Video Analyzer</h1><p>Static files not found.</p>")
+    return HTMLResponse(content="<h1>Video Analyzer</h1>")
 
 
 @app.post("/api/analyze")
 async def analyze(
     video: UploadFile = File(...),
-    presentation: Optional[UploadFile] = File(None)
+    presentation: Optional[UploadFile] = File(None),
+    industry: str = Form(default="General Technology"),
+    perspective: str = Form(default="All"),
+    focus_areas: str = Form(default=""),
+    custom_question: str = Form(default=""),
+    analysis_depth: str = Form(default="Standard")
 ):
     tmp_dir = tempfile.mkdtemp()
     try:
-        # Save video
         video_path = os.path.join(tmp_dir, video.filename or "video.mp4")
         with open(video_path, "wb") as f:
             shutil.copyfileobj(video.file, f)
 
-        # Save presentation if provided
         pres_path = None
         if presentation and presentation.filename:
             pres_path = os.path.join(tmp_dir, presentation.filename)
             with open(pres_path, "wb") as f:
                 shutil.copyfileobj(presentation.file, f)
 
-        # Build Claude message content
         content = []
 
-        # Add video frames
+        # Analysis parameters context
+        params_text = f"""## Analysis Parameters
+- **Industry / Domain**: {industry}
+- **Evaluation Perspective**: {perspective}
+- **Focus Areas**: {focus_areas if focus_areas else 'All dimensions equally weighted'}
+- **Analysis Depth**: {analysis_depth}
+{f'- **Specific Question**: {custom_question}' if custom_question.strip() else ''}
+
+Please tailor your analysis to these parameters — prioritize the specified industry context, apply the requested perspective, and if a specific question is provided, address it directly in the detailed_analysis field.
+"""
+        content.append({"type": "text", "text": params_text})
+
+        # Video frames
         frames = extract_video_frames(video_path)
         if frames:
             content.append({
                 "type": "text",
-                "text": f"## Video Content Analysis\nI have extracted {len(frames)} frames from the video at evenly-spaced intervals. Please analyze these frames to understand the technology being demonstrated:"
+                "text": f"## Video Content\nExtracted {len(frames)} frames from the video at evenly-spaced intervals:"
             })
-            for i, frame_b64 in enumerate(frames):
+            for frame_b64 in frames:
                 content.append({
                     "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "image/jpeg",
-                        "data": frame_b64
-                    }
+                    "source": {"type": "base64", "media_type": "image/jpeg", "data": frame_b64}
                 })
         else:
             content.append({
                 "type": "text",
-                "text": f"## Video Content\nVideo file provided: {video.filename}\n(Frame extraction unavailable — analyze based on any presentation content provided)"
+                "text": f"## Video Content\nFile: {video.filename} (frame extraction unavailable)"
             })
 
-        # Add presentation content
+        # Presentation
         if pres_path:
             ext = Path(pres_path).suffix.lower()
             if ext in (".pptx", ".ppt"):
@@ -310,38 +259,22 @@ async def analyze(
                 if pptx_text:
                     content.append({
                         "type": "text",
-                        "text": f"## Supporting Presentation Content\n\n{pptx_text}"
+                        "text": f"## Supporting Presentation\n\n{pptx_text}"
                     })
             elif ext == ".pdf":
                 with open(pres_path, "rb") as f:
                     pdf_data = base64.b64encode(f.read()).decode("utf-8")
                 content.append({
                     "type": "document",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "application/pdf",
-                        "data": pdf_data
-                    }
+                    "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_data}
                 })
 
-        # Add analysis request
         content.append({
             "type": "text",
-            "text": """## Analysis Request
-
-Please perform a comprehensive technology innovation analysis of the content above. Evaluate the technology demonstrated against the cutting-edge technology landscape and provide your structured assessment.
-
-Your analysis must:
-1. Identify all technologies, frameworks, and platforms visible/mentioned
-2. Score each dimension honestly based on evidence in the content (not assumptions)
-3. Correlate specifically with 2024-2025 cutting-edge technology trends
-4. Provide concrete business opportunities and clear improvement areas
-5. Calculate overall_score as the exact sum of the four dimension scores
-
-Be rigorous, evidence-based, and specific. Avoid generic statements — ground every claim in what you actually observed in the video frames and presentation."""
+            "text": """## Task
+Perform a comprehensive technology innovation analysis of the content above using the parameters specified. Score each dimension honestly based on evidence only. Calculate overall_score as the exact sum of the four dimension scores."""
         })
 
-        # Call Claude API with structured output
         response = client.messages.create(
             model="claude-opus-4-7",
             max_tokens=4096,
@@ -361,25 +294,21 @@ Be rigorous, evidence-based, and specific. Avoid generic statements — ground e
         result_text = next((b.text for b in response.content if b.type == "text"), "{}")
         result = json.loads(result_text)
 
-        # Ensure overall_score matches sum of dimensions
         if "scores" in result:
             s = result["scores"]
-            computed = (
-                s.get("technology_currency", 0) +
-                s.get("innovation_novelty", 0) +
-                s.get("business_viability", 0) +
-                s.get("technical_depth", 0)
+            result["overall_score"] = (
+                s.get("technology_currency", 0) + s.get("innovation_novelty", 0) +
+                s.get("business_viability", 0) + s.get("technical_depth", 0)
             )
-            result["overall_score"] = computed
 
         return result
 
     except anthropic.BadRequestError as e:
         raise HTTPException(status_code=400, detail=f"Content rejected by Claude: {str(e)}")
     except anthropic.AuthenticationError:
-        raise HTTPException(status_code=401, detail="Invalid Anthropic API key. Set ANTHROPIC_API_KEY environment variable.")
+        raise HTTPException(status_code=401, detail="Invalid Anthropic API key.")
     except anthropic.RateLimitError:
-        raise HTTPException(status_code=429, detail="Rate limit reached. Please wait a moment and try again.")
+        raise HTTPException(status_code=429, detail="Rate limit reached. Please try again shortly.")
     except HTTPException:
         raise
     except Exception as e:

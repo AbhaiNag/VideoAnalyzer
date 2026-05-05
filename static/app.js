@@ -1,349 +1,383 @@
 'use strict';
 
-// ── State ──────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────
 let videoFile = null;
-let presFile = null;
+let presFile  = null;
+let currentStep = 1;
 
-const LOADING_MESSAGES = [
-  'Extracting video frames...',
-  'Analyzing technology stack...',
-  'Correlating with cutting-edge landscape...',
-  'Evaluating innovation metrics...',
-  'Assessing business viability...',
-  'Calculating dimension scores...',
-  'Generating comprehensive analysis...',
-  'Finalizing innovation report...'
+const LOADING_STEPS = [
+  { id: 'ls1', label: '📹 Video frames extracted' },
+  { id: 'ls2', label: '🔍 Analyzing technology stack' },
+  { id: 'ls3', label: '🌐 Correlating with tech landscape' },
+  { id: 'ls4', label: '📊 Scoring dimensions' },
+  { id: 'ls5', label: '✍️ Generating report' }
 ];
 
-// ── Init ───────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  setupDropZone('videoDropZone', 'videoInput', handleVideoFile, 'video/*');
-  setupDropZone('presDropZone', 'presInput', handlePresFile, '.pdf,.pptx,.ppt');
+  setupDrop('videoDropZone', 'videoInput', handleVideoFile);
+  setupDrop('presDropZone',  'presInput',  handlePresFile);
+  setupPerspective();
+  setupDepth();
+  setupFocusChecks();
+  updateSummaryBar();
 });
 
-// ── Drop Zones ─────────────────────────────────────────
-function setupDropZone(zoneId, inputId, handler, accept) {
-  const zone = document.getElementById(zoneId);
+// ── Drag & Drop ───────────────────────────────────────
+function setupDrop(zoneId, inputId, handler) {
+  const zone  = document.getElementById(zoneId);
   const input = document.getElementById(inputId);
 
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
   zone.addEventListener('drop', e => {
     e.preventDefault();
     zone.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) handler(file);
+    const f = e.dataTransfer.files[0];
+    if (f) handler(f);
   });
-
-  input.addEventListener('change', () => {
-    if (input.files[0]) handler(input.files[0]);
-    input.value = '';
-  });
+  input.addEventListener('change', () => { if (input.files[0]) handler(input.files[0]); input.value = ''; });
 }
 
-// ── Video File Handler ─────────────────────────────────
+// ── Video Handler ─────────────────────────────────────
 function handleVideoFile(file) {
-  if (!file.type.startsWith('video/') && !isVideoExtension(file.name)) {
-    showError('Please upload a valid video file (MP4, MOV, AVI, MKV, etc.)');
-    return;
+  if (!file.type.startsWith('video/') && !isVideoExt(file.name)) {
+    return showError('Please upload a valid video file (MP4, MOV, AVI, MKV, etc.)');
   }
-
   const url = URL.createObjectURL(file);
-  const videoEl = document.getElementById('videoEl');
-  videoEl.src = url;
+  const vid = document.getElementById('videoEl');
+  vid.src = url;
 
-  videoEl.onloadedmetadata = () => {
-    const dur = videoEl.duration;
-    if (dur > 480) {
-      showError(`Video duration is ${formatDuration(dur)}. Maximum allowed is 8 minutes (480 seconds).`);
-      videoEl.src = '';
-      URL.revokeObjectURL(url);
-      return;
+  vid.onloadedmetadata = () => {
+    if (vid.duration > 480) {
+      showError(`Video is ${fmt(vid.duration)} — max allowed is 8 minutes (480 s).`);
+      vid.src = ''; URL.revokeObjectURL(url); return;
     }
     videoFile = file;
-    document.getElementById('videoMeta').textContent =
-      `${file.name} · ${formatDuration(dur)} · ${formatBytes(file.size)}`;
-    showPreview('video');
-    updateAnalyzeBtn();
+    document.getElementById('videoChipName').textContent = file.name;
+    document.getElementById('videoChipMeta').textContent =
+      `${fmt(vid.duration)} · ${bytes(file.size)}`;
+    document.getElementById('videoDropZone').hidden = true;
+    document.getElementById('videoChip').hidden = false;
+    document.getElementById('videoPreviewContainer').hidden = false;
+    updateStep1Btn();
   };
-
-  videoEl.onerror = () => {
-    showError('Could not read video metadata. The file may be corrupted or in an unsupported format.');
-    URL.revokeObjectURL(url);
-  };
+  vid.onerror = () => { showError('Could not read video. File may be corrupted.'); URL.revokeObjectURL(url); };
 }
 
-// ── Presentation File Handler ──────────────────────────
+// ── Presentation Handler ──────────────────────────────
 function handlePresFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
-  if (!['pdf', 'pptx', 'ppt'].includes(ext)) {
-    showError('Please upload a PDF, PPTX, or PPT file.');
-    return;
-  }
+  if (!['pdf','pptx','ppt'].includes(ext))
+    return showError('Please upload a PDF, PPTX, or PPT file.');
   presFile = file;
-  document.getElementById('presName').textContent = file.name;
-  document.getElementById('presSize').textContent = formatBytes(file.size);
-  showPreview('pres');
+  document.getElementById('presChipName').textContent = file.name;
+  document.getElementById('presChipMeta').textContent = bytes(file.size);
+  document.getElementById('presDropZone').hidden = true;
+  document.getElementById('presChip').hidden = false;
 }
 
-// ── UI Helpers ─────────────────────────────────────────
-function showPreview(type) {
-  if (type === 'video') {
-    document.getElementById('videoDropZone').hidden = true;
-    document.getElementById('videoPreview').hidden = false;
-  } else {
-    document.getElementById('presDropZone').hidden = true;
-    document.getElementById('presPreview').hidden = false;
-  }
-}
-
+// ── Remove File ───────────────────────────────────────
 function removeFile(type) {
   if (type === 'video') {
-    const videoEl = document.getElementById('videoEl');
-    if (videoEl.src) URL.revokeObjectURL(videoEl.src);
-    videoEl.src = '';
+    const vid = document.getElementById('videoEl');
+    if (vid.src) URL.revokeObjectURL(vid.src);
+    vid.src = '';
     videoFile = null;
     document.getElementById('videoDropZone').hidden = false;
-    document.getElementById('videoPreview').hidden = true;
+    document.getElementById('videoChip').hidden = true;
+    document.getElementById('videoPreviewContainer').hidden = true;
     document.getElementById('videoInput').value = '';
+    updateStep1Btn();
   } else {
     presFile = null;
     document.getElementById('presDropZone').hidden = false;
-    document.getElementById('presPreview').hidden = true;
+    document.getElementById('presChip').hidden = true;
     document.getElementById('presInput').value = '';
   }
-  updateAnalyzeBtn();
 }
 
-function updateAnalyzeBtn() {
-  const btn = document.getElementById('analyzeBtn');
-  const hint = document.getElementById('analyzeHint');
-  if (videoFile) {
-    btn.disabled = false;
-    hint.textContent = presFile
-      ? `Ready: ${videoFile.name} + ${presFile.name}`
-      : `Ready: ${videoFile.name} (no presentation)`;
-  } else {
-    btn.disabled = true;
-    hint.textContent = 'Load a video to begin analysis';
+function updateStep1Btn() {
+  const btn  = document.getElementById('toStep2Btn');
+  const hint = document.getElementById('step1Hint');
+  btn.disabled = !videoFile;
+  hint.textContent = videoFile
+    ? (presFile ? `✓ Video + Presentation ready` : `✓ Video ready${presFile ? '' : ' — presentation is optional'}`)
+    : 'Upload a video file to continue';
+}
+
+// ── Step Navigation ───────────────────────────────────
+function goToStep(n) {
+  document.getElementById(`step${currentStep}`).hidden = true;
+  document.getElementById(`step${n}`).hidden = false;
+
+  // Update dots
+  for (let i = 1; i <= 3; i++) {
+    const dot  = document.getElementById(`stepDot${i}`);
+    const line = document.querySelectorAll('.step-line')[i - 1];
+    dot.classList.remove('active','done');
+    if (i < n)  dot.classList.add('done');
+    if (i === n) dot.classList.add('active');
+    if (line) line.classList.toggle('done', i < n);
   }
+
+  currentStep = n;
+  if (n === 2) updateSummaryBar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ── Analysis ───────────────────────────────────────────
+// ── Parameter Controls ────────────────────────────────
+function setupPerspective() {
+  document.querySelectorAll('.persp-opt').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.persp-opt').forEach(o => o.classList.remove('active'));
+      el.classList.add('active');
+      el.querySelector('input').checked = true;
+      updateSummaryBar();
+    });
+  });
+}
+
+function setupDepth() {
+  document.querySelectorAll('.depth-opt').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.depth-opt').forEach(o => o.classList.remove('active'));
+      el.classList.add('active');
+      el.querySelector('input').checked = true;
+      updateSummaryBar();
+    });
+  });
+}
+
+function setupFocusChecks() {
+  document.querySelectorAll('.focus-check input').forEach(cb => {
+    cb.addEventListener('change', updateSummaryBar);
+  });
+  document.getElementById('paramIndustry').addEventListener('change', updateSummaryBar);
+  document.getElementById('paramQuestion').addEventListener('input', updateSummaryBar);
+}
+
+function updateSummaryBar() {
+  const bar = document.getElementById('paramSummary');
+  if (!bar) return;
+  const industry    = document.getElementById('paramIndustry')?.value || 'General Technology';
+  const perspective = document.querySelector('[name=perspective]:checked')?.value || 'All';
+  const depth       = document.querySelector('[name=depth]:checked')?.value || 'Standard';
+  const focuses     = [...document.querySelectorAll('.focus-check input:checked')].map(c => c.value);
+  const q           = document.getElementById('paramQuestion')?.value?.trim();
+
+  const tags = [
+    `<span class="sum-tag">🏭 ${industry}</span>`,
+    `<span class="sum-tag">🎯 ${perspective}</span>`,
+    `<span class="sum-tag">📊 ${depth}</span>`,
+    ...focuses.map(f => `<span class="sum-tag">🔍 ${f}</span>`),
+    q ? `<span class="sum-tag">💬 Custom Q</span>` : ''
+  ].filter(Boolean).join('');
+
+  bar.innerHTML = tags || '<span style="color:var(--muted)">Default parameters — all dimensions equally weighted</span>';
+}
+
+function getParams() {
+  return {
+    industry:        document.getElementById('paramIndustry').value,
+    perspective:     document.querySelector('[name=perspective]:checked')?.value || 'All',
+    depth:           document.querySelector('[name=depth]:checked')?.value || 'Standard',
+    focus_areas:     [...document.querySelectorAll('.focus-check input:checked')].map(c => c.value).join(', '),
+    custom_question: document.getElementById('paramQuestion').value.trim()
+  };
+}
+
+// ── Analysis ──────────────────────────────────────────
 async function startAnalysis() {
   if (!videoFile) return;
+  const params = getParams();
 
   showLoading(true);
-  let msgIdx = 0;
-  const msgEl = document.getElementById('loadingMsg');
-  msgEl.textContent = LOADING_MESSAGES[0];
-  const msgInterval = setInterval(() => {
-    msgIdx = (msgIdx + 1) % LOADING_MESSAGES.length;
-    msgEl.textContent = LOADING_MESSAGES[msgIdx];
-  }, 3000);
+  animateLoadingSteps();
 
   try {
     const form = new FormData();
     form.append('video', videoFile);
     if (presFile) form.append('presentation', presFile);
+    form.append('industry',        params.industry);
+    form.append('perspective',     params.perspective);
+    form.append('analysis_depth',  params.depth);
+    form.append('focus_areas',     params.focus_areas);
+    form.append('custom_question', params.custom_question);
 
     const res = await fetch('/api/analyze', { method: 'POST', body: form });
-
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: `Server error ${res.status}` }));
       throw new Error(err.detail || `Request failed: ${res.status}`);
     }
 
     const data = await res.json();
-    renderResults(data, videoFile.name);
-  } catch (err) {
-    showError(err.message || 'An unexpected error occurred. Please try again.');
-  } finally {
-    clearInterval(msgInterval);
     showLoading(false);
+    renderResults(data, params);
+    goToStep(3);
+  } catch (err) {
+    showLoading(false);
+    showError(err.message || 'Unexpected error. Please try again.');
   }
 }
 
-// ── Render Results ─────────────────────────────────────
-function renderResults(data, filename) {
-  document.getElementById('videoFilename').textContent = filename;
+// ── Loading ───────────────────────────────────────────
+function showLoading(show) {
+  document.getElementById('loadingOverlay').hidden = !show;
+}
 
-  // Overall score gauge
+function animateLoadingSteps() {
+  LOADING_STEPS.forEach((s, i) => {
+    const el = document.getElementById(s.id);
+    el.className = 'lstep';
+    el.textContent = s.label;
+  });
+  let idx = 0;
+  const tick = setInterval(() => {
+    if (idx > 0) {
+      document.getElementById(LOADING_STEPS[idx-1].id).className = 'lstep done';
+    }
+    if (idx < LOADING_STEPS.length) {
+      document.getElementById(LOADING_STEPS[idx].id).className = 'lstep active';
+      idx++;
+    } else {
+      clearInterval(tick);
+    }
+  }, 4000);
+}
+
+// ── Render Results ────────────────────────────────────
+function renderResults(data, params) {
+  // Meta
+  const meta = [
+    videoFile?.name,
+    presFile ? `+ ${presFile.name}` : null,
+    `· ${params.industry}`,
+    `· ${params.perspective} perspective`,
+    `· ${params.depth}`
+  ].filter(Boolean).join(' ');
+  document.getElementById('resultsMeta').textContent = meta;
+
+  // Gauge
   const score = Math.max(0, Math.min(100, data.overall_score || 0));
   animateGauge(score);
-  animateCounter('gaugeScore', 0, score, 1200);
+  counter('gaugeScore', 0, score, 1400);
 
-  // Recommendation badge
-  const badge = document.getElementById('recommendationBadge');
+  // Recommendation
+  const badge = document.getElementById('recBadge');
   badge.textContent = data.recommendation || '';
-  badge.className = 'recommendation-badge ' + recClass(data.recommendation);
+  badge.className = 'rec-badge ' + recClass(data.recommendation);
 
-  // Executive summary
-  document.getElementById('executiveSummary').textContent = data.executive_summary || '';
+  // Summary
+  document.getElementById('execSummary').textContent = data.executive_summary || '';
 
-  // Dimension scores
+  // Dimensions
   const s = data.scores || {};
-  renderDimension('TechCurrency', s.technology_currency || 0);
-  renderDimension('Innovation', s.innovation_novelty || 0);
-  renderDimension('Business', s.business_viability || 0);
-  renderDimension('TechDepth', s.technical_depth || 0);
+  setDim(1, s.technology_currency || 0, 'dv1', 'db1');
+  setDim(2, s.innovation_novelty  || 0, 'dv2', 'db2');
+  setDim(3, s.business_viability  || 0, 'dv3', 'db3');
+  setDim(4, s.technical_depth     || 0, 'dv4', 'db4');
 
-  // Technology stack tags
-  const tagsEl = document.getElementById('techTags');
-  tagsEl.innerHTML = '';
-  (data.technology_stack || []).forEach(tech => {
-    const tag = document.createElement('span');
-    tag.className = 'tech-tag';
-    tag.textContent = tech;
-    tagsEl.appendChild(tag);
+  // Tech stack
+  const tags = document.getElementById('techTags');
+  tags.innerHTML = '';
+  (data.technology_stack || []).forEach(t => {
+    const el = document.createElement('span');
+    el.className = 'tech-tag'; el.textContent = t;
+    tags.appendChild(el);
   });
 
   // Lists
-  renderList('keyInnovations', data.key_innovations || []);
-  renderList('businessOpportunities', data.business_opportunities || []);
-  renderList('improvementAreas', data.improvement_areas || []);
+  fillList('listInnovations',  data.key_innovations       || []);
+  fillList('listOpportunities',data.business_opportunities || []);
+  fillList('listImprovements', data.improvement_areas      || []);
 
   // Text blocks
-  document.getElementById('cuttingEdgeCorrelation').textContent = data.cutting_edge_correlation || '';
-  document.getElementById('marketPositioning').textContent = data.market_positioning || '';
-  document.getElementById('technologyAnalysis').textContent = data.technology_analysis || '';
-  document.getElementById('businessCase').textContent = data.business_case || '';
-  document.getElementById('detailedAnalysis').textContent = data.detailed_analysis || '';
+  document.getElementById('rtCorrelation').textContent  = data.cutting_edge_correlation || '';
+  document.getElementById('rtMarket').textContent       = data.market_positioning        || '';
+  document.getElementById('rtTechAnalysis').textContent = data.technology_analysis       || '';
+  document.getElementById('rtBusinessCase').textContent = data.business_case             || '';
+  document.getElementById('rtDetailed').textContent     = data.detailed_analysis         || '';
 
-  // Show results
-  document.getElementById('uploadSection').hidden = true;
-  document.getElementById('resultsSection').hidden = false;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Reset expandable
+  document.getElementById('expandCard').classList.remove('open');
 }
 
-function renderDimension(key, value) {
-  const score = Math.max(0, Math.min(25, value));
-  const pct = (score / 25) * 100;
-  const scoreEl = document.getElementById(`score${key}`);
-  const barEl = document.getElementById(`bar${key}`);
-
-  animateCounter(`score${key}`, 0, score, 1000);
-
-  // Color coding
-  const colorClass = score >= 20 ? 'score-green'
-    : score >= 15 ? 'score-blue'
-    : score >= 10 ? 'score-amber'
-    : 'score-red';
-  const barClass = score >= 20 ? 'bar-green'
-    : score >= 15 ? ''
-    : score >= 10 ? 'bar-amber'
-    : 'bar-red';
-
-  scoreEl.className = `dim-score ${colorClass}`;
-  if (barClass) barEl.classList.add(barClass);
-
-  setTimeout(() => { barEl.style.width = pct + '%'; }, 100);
+function setDim(n, val, valId, barId) {
+  const v = Math.max(0, Math.min(25, val));
+  const pct = (v / 25) * 100;
+  const valEl = document.getElementById(valId);
+  const barEl = document.getElementById(barId);
+  counter(valId, 0, v, 1100, true);
+  const cc = v >= 20 ? 'c-green' : v >= 15 ? 'c-blue' : v >= 10 ? 'c-amber' : 'c-red';
+  const bc = v >= 20 ? 'b-green' : v >= 10 ? '' : v >= 5 ? 'b-amber' : 'b-red';
+  valEl.className = `dim-val ${cc}`;
+  valEl.innerHTML = `${v}<small>/25</small>`;
+  barEl.className = `dim-bar ${bc}`;
+  setTimeout(() => { barEl.style.width = pct + '%'; }, 120);
 }
 
-function renderList(elId, items) {
+function fillList(elId, items) {
   const el = document.getElementById(elId);
   el.innerHTML = '';
-  items.forEach(item => {
+  const arr = items.length ? items : ['None identified'];
+  arr.forEach(item => {
     const li = document.createElement('li');
     li.textContent = item;
     el.appendChild(li);
   });
-  if (!items.length) {
-    const li = document.createElement('li');
-    li.textContent = 'None identified';
-    el.appendChild(li);
-  }
 }
 
-// ── Gauge Animation ────────────────────────────────────
+// ── Gauge ─────────────────────────────────────────────
 function animateGauge(score) {
   const arc = document.getElementById('gaugeFill');
-  const totalLength = 251.2; // semicircle circumference at r=80
-  const offset = totalLength - (score / 100) * totalLength;
-
-  // Color
-  const colorClass = score >= 80 ? 'gauge-green'
-    : score >= 60 ? 'gauge-blue'
-    : score >= 40 ? 'gauge-amber'
-    : 'gauge-red';
-  arc.className = colorClass;
-
-  setTimeout(() => { arc.style.strokeDashoffset = offset; }, 100);
+  const total = 267;
+  const offset = total - (score / 100) * total;
+  const cc = score >= 80 ? 'g-green' : score >= 60 ? 'g-blue' : score >= 40 ? 'g-amber' : 'g-red';
+  arc.className = cc;
+  setTimeout(() => { arc.style.strokeDashoffset = offset; }, 120);
 }
 
-// ── Counter Animation ──────────────────────────────────
-function animateCounter(elId, from, to, duration) {
+// ── Counter Animation ─────────────────────────────────
+function counter(elId, from, to, dur, keepHtml = false) {
   const el = document.getElementById(elId);
   if (!el) return;
   const start = performance.now();
-  function step(now) {
-    const t = Math.min((now - start) / duration, 1);
-    const ease = 1 - Math.pow(1 - t, 3);
-    el.textContent = Math.round(from + (to - from) * ease);
+  (function step(now) {
+    const t = Math.min((now - start) / dur, 1);
+    const v = Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3)));
+    if (keepHtml) el.innerHTML = `${v}<small>/25</small>`;
+    else el.textContent = v;
     if (t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+  })(performance.now());
 }
 
-// ── Loading ────────────────────────────────────────────
-function showLoading(show) {
-  const el = document.getElementById('loadingOverlay');
-  el.hidden = !show;
-  if (show) {
-    // Reset progress bar animation
-    const fill = document.getElementById('loadingFill');
-    fill.style.animation = 'none';
-    fill.getBoundingClientRect();
-    fill.style.animation = '';
-  }
+// ── Expand ────────────────────────────────────────────
+function toggleExpand() {
+  document.getElementById('expandCard').classList.toggle('open');
 }
 
-// ── Reset ──────────────────────────────────────────────
-function resetUI() {
-  document.getElementById('resultsSection').hidden = true;
-  document.getElementById('uploadSection').hidden = false;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// ── Expand Toggle ──────────────────────────────────────
-function toggleExpand(btn) {
-  const card = btn.closest('.expandable-card');
-  card.classList.toggle('open');
-}
-
-// ── Error Toast ────────────────────────────────────────
+// ── Error Toast ───────────────────────────────────────
 function showError(msg) {
-  const existing = document.querySelector('.error-toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.className = 'error-toast';
-  toast.textContent = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 6000);
+  document.querySelector('.error-toast')?.remove();
+  const t = document.createElement('div');
+  t.className = 'error-toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 7000);
 }
 
-// ── Utils ──────────────────────────────────────────────
-function isVideoExtension(name) {
-  return /\.(mp4|mov|avi|mkv|webm|m4v|flv|wmv|mpeg|mpg)$/i.test(name);
+// ── Helpers ───────────────────────────────────────────
+function isVideoExt(name) { return /\.(mp4|mov|avi|mkv|webm|m4v|flv|wmv|mpeg|mpg)$/i.test(name); }
+function fmt(s) { return `${Math.floor(s/60)}m ${String(Math.floor(s%60)).padStart(2,'0')}s`; }
+function bytes(b) {
+  if (b < 1024)        return b + ' B';
+  if (b < 1048576)     return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
 }
-
-function formatDuration(secs) {
-  const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60);
-  return `${m}m ${s.toString().padStart(2, '0')}s`;
-}
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function recClass(rec) {
-  if (!rec) return '';
-  if (rec.includes('Highly')) return 'rec-high';
-  if (rec.includes('Recommended for')) return 'rec-good';
-  if (rec.includes('Conditionally')) return 'rec-cond';
-  return 'rec-no';
+function recClass(r) {
+  if (!r) return '';
+  if (r.includes('Highly'))    return 'rb-high';
+  if (r.includes('Recommended for')) return 'rb-good';
+  if (r.includes('Conditionally'))   return 'rb-cond';
+  return 'rb-no';
 }

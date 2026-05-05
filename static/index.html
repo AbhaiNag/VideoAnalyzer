@@ -7,256 +7,439 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
+
   <!-- Header -->
   <header class="header">
     <div class="header-inner">
       <div class="logo">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <circle cx="16" cy="16" r="15" stroke="url(#grad)" stroke-width="2"/>
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="15" stroke="url(#hg)" stroke-width="2"/>
           <path d="M10 16 L14 20 L22 12" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <defs>
-            <linearGradient id="grad" x1="0" y1="0" x2="32" y2="32">
-              <stop offset="0%" stop-color="#6366f1"/>
-              <stop offset="100%" stop-color="#22d3ee"/>
-            </linearGradient>
-          </defs>
+          <defs><linearGradient id="hg" x1="0" y1="0" x2="32" y2="32">
+            <stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#22d3ee"/>
+          </linearGradient></defs>
         </svg>
         <span>VideoAnalyzer</span>
         <span class="badge">AI Powered</span>
       </div>
-      <p class="tagline">Cutting-Edge Technology Intelligence &amp; Innovation Assessment</p>
+      <p class="tagline">Cutting-Edge Technology Innovation Assessment</p>
     </div>
   </header>
 
   <main class="main">
-    <!-- Upload Section -->
-    <section class="upload-section" id="uploadSection">
+
+    <!-- ── STEP INDICATOR ── -->
+    <div class="steps" id="stepIndicator">
+      <div class="step active" id="stepDot1">
+        <div class="step-dot">1</div>
+        <span>Upload Content</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="stepDot2">
+        <div class="step-dot">2</div>
+        <span>Set Parameters</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="stepDot3">
+        <div class="step-dot">3</div>
+        <span>View Results</span>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- STEP 1 — UPLOAD                           -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="step-section" id="step1">
       <div class="section-title">
-        <h2>Load Your Content</h2>
-        <p>Upload a video (max 8 minutes) and optionally a supporting presentation for AI analysis</p>
+        <h2>Upload Your Content</h2>
+        <p>Add a video (max 8 minutes) and optionally a PowerPoint or PDF presentation</p>
       </div>
 
       <div class="upload-grid">
-        <!-- Video Upload -->
+
+        <!-- Video -->
         <div class="upload-card" id="videoCard">
-          <div class="drop-zone" id="videoDropZone">
+          <div class="upload-label">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="3" width="14" height="10" rx="2" stroke="#6366f1" stroke-width="1.5"/>
+              <path d="M6 5.5 L11 8 L6 10.5 Z" fill="#6366f1"/>
+            </svg>
+            Video File <span class="required">Required</span>
+          </div>
+
+          <div class="drop-zone" id="videoDropZone" onclick="document.getElementById('videoInput').click()">
             <input type="file" id="videoInput" accept="video/*" hidden />
-            <div class="drop-icon">
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <rect x="4" y="8" width="40" height="32" rx="4" stroke="#6366f1" stroke-width="2"/>
-                <path d="M20 17 L32 24 L20 31 Z" fill="#6366f1"/>
+            <div class="drop-icon video-icon">
+              <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+                <circle cx="26" cy="26" r="25" fill="rgba(99,102,241,0.08)" stroke="rgba(99,102,241,0.3)" stroke-width="1.5"/>
+                <rect x="12" y="17" width="28" height="18" rx="3" stroke="#6366f1" stroke-width="1.5"/>
+                <path d="M21 22 L32 26 L21 30 Z" fill="#6366f1"/>
               </svg>
             </div>
-            <h3>Video File</h3>
-            <p>Drag &amp; drop or <span class="link" onclick="document.getElementById('videoInput').click()">browse</span></p>
-            <p class="hint">MP4, MOV, AVI, MKV · Max 8 minutes</p>
+            <p class="drop-title">Drop video here</p>
+            <p class="drop-sub">or click to browse</p>
+            <p class="drop-hint">MP4 · MOV · AVI · MKV · Max 8 min</p>
           </div>
-          <div class="file-preview" id="videoPreview" hidden>
-            <video id="videoEl" controls></video>
-            <div class="file-meta" id="videoMeta"></div>
-            <button class="btn-remove" onclick="removeFile('video')">✕ Remove</button>
+
+          <div class="file-chip" id="videoChip" hidden>
+            <div class="chip-icon video-chip-icon">▶</div>
+            <div class="chip-info">
+              <span class="chip-name" id="videoChipName"></span>
+              <span class="chip-meta" id="videoChipMeta"></span>
+            </div>
+            <button class="chip-remove" onclick="removeFile('video')" title="Remove">✕</button>
           </div>
         </div>
 
-        <!-- Presentation Upload -->
+        <!-- Presentation -->
         <div class="upload-card" id="presCard">
-          <div class="drop-zone" id="presDropZone">
+          <div class="upload-label">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="3" y="1" width="10" height="14" rx="1.5" stroke="#22d3ee" stroke-width="1.5"/>
+              <path d="M6 5 H10 M6 8 H10 M6 11 H8" stroke="#22d3ee" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+            Presentation <span class="optional-tag">Optional</span>
+          </div>
+
+          <div class="drop-zone pres-drop" id="presDropZone" onclick="document.getElementById('presInput').click()">
             <input type="file" id="presInput" accept=".pdf,.pptx,.ppt" hidden />
             <div class="drop-icon">
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <rect x="8" y="4" width="32" height="40" rx="3" stroke="#22d3ee" stroke-width="2"/>
-                <path d="M16 16 H32 M16 24 H32 M16 32 H24" stroke="#22d3ee" stroke-width="2" stroke-linecap="round"/>
+              <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+                <circle cx="26" cy="26" r="25" fill="rgba(34,211,238,0.06)" stroke="rgba(34,211,238,0.25)" stroke-width="1.5"/>
+                <rect x="14" y="10" width="24" height="32" rx="2.5" stroke="#22d3ee" stroke-width="1.5"/>
+                <path d="M19 19 H33 M19 25 H33 M19 31 H26" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </div>
-            <h3>Presentation <span class="optional">Optional</span></h3>
-            <p>Drag &amp; drop or <span class="link" onclick="document.getElementById('presInput').click()">browse</span></p>
-            <p class="hint">PDF, PPTX, PPT</p>
+            <p class="drop-title">Drop presentation here</p>
+            <p class="drop-sub">or click to browse</p>
+            <p class="drop-hint">PDF · PPTX · PPT</p>
           </div>
-          <div class="file-preview pres-preview" id="presPreview" hidden>
-            <div class="pres-icon">
-              <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-                <rect x="8" y="4" width="32" height="40" rx="3" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" stroke-width="2"/>
-                <path d="M16 16 H32 M16 24 H32 M16 32 H24" stroke="#22d3ee" stroke-width="2" stroke-linecap="round"/>
-              </svg>
+
+          <div class="file-chip pres-chip-style" id="presChip" hidden>
+            <div class="chip-icon pres-chip-icon">📄</div>
+            <div class="chip-info">
+              <span class="chip-name" id="presChipName"></span>
+              <span class="chip-meta" id="presChipMeta"></span>
             </div>
-            <div class="pres-name" id="presName"></div>
-            <div class="pres-size" id="presSize"></div>
-            <button class="btn-remove" onclick="removeFile('pres')">✕ Remove</button>
+            <button class="chip-remove" onclick="removeFile('pres')" title="Remove">✕</button>
           </div>
         </div>
       </div>
 
-      <div class="analyze-bar">
-        <button class="btn-analyze" id="analyzeBtn" disabled onclick="startAnalysis()">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="9" stroke="white" stroke-width="1.5"/>
-            <path d="M7 10 L9 12 L13 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Video preview -->
+      <div class="video-preview-container" id="videoPreviewContainer" hidden>
+        <video id="videoEl" controls></video>
+      </div>
+
+      <div class="step-action">
+        <button class="btn-primary" id="toStep2Btn" disabled onclick="goToStep(2)">
+          Continue to Parameters
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M7 4 L12 9 L7 14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Analyze Innovation
         </button>
-        <p class="analyze-hint" id="analyzeHint">Load a video to begin analysis</p>
+        <p class="step-hint" id="step1Hint">Upload a video file to continue</p>
       </div>
     </section>
 
-    <!-- Loading Overlay -->
+    <!-- ══════════════════════════════════════════ -->
+    <!-- STEP 2 — PARAMETERS                       -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="step-section" id="step2" hidden>
+      <div class="section-title">
+        <h2>Analysis Parameters</h2>
+        <p>Customize how the AI evaluates your content</p>
+      </div>
+
+      <div class="params-grid">
+
+        <!-- Industry -->
+        <div class="param-card">
+          <label class="param-label">
+            <span class="param-icon">🏭</span> Industry / Domain
+          </label>
+          <select class="param-select" id="paramIndustry">
+            <option value="General Technology">General Technology</option>
+            <option value="Artificial Intelligence & ML">Artificial Intelligence &amp; ML</option>
+            <option value="FinTech & Financial Services">FinTech &amp; Financial Services</option>
+            <option value="HealthTech & MedTech">HealthTech &amp; MedTech</option>
+            <option value="EdTech & Learning">EdTech &amp; Learning</option>
+            <option value="Cybersecurity">Cybersecurity</option>
+            <option value="Cloud & Infrastructure">Cloud &amp; Infrastructure</option>
+            <option value="IoT & Hardware">IoT &amp; Hardware</option>
+            <option value="Robotics & Automation">Robotics &amp; Automation</option>
+            <option value="Sustainability & CleanTech">Sustainability &amp; CleanTech</option>
+            <option value="Enterprise SaaS">Enterprise SaaS</option>
+            <option value="Consumer Tech">Consumer Tech</option>
+          </select>
+        </div>
+
+        <!-- Perspective -->
+        <div class="param-card">
+          <label class="param-label">
+            <span class="param-icon">🎯</span> Evaluation Perspective
+          </label>
+          <div class="perspective-grid">
+            <label class="persp-opt active" data-val="All">
+              <input type="radio" name="perspective" value="All" checked hidden/>
+              <span class="persp-icon">⚖️</span>
+              <span>Balanced</span>
+            </label>
+            <label class="persp-opt" data-val="Investor">
+              <input type="radio" name="perspective" value="Investor" hidden/>
+              <span class="persp-icon">💰</span>
+              <span>Investor</span>
+            </label>
+            <label class="persp-opt" data-val="Technical">
+              <input type="radio" name="perspective" value="Technical" hidden/>
+              <span class="persp-icon">🔬</span>
+              <span>Technical</span>
+            </label>
+            <label class="persp-opt" data-val="Business">
+              <input type="radio" name="perspective" value="Business" hidden/>
+              <span class="persp-icon">📈</span>
+              <span>Business</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Focus Areas -->
+        <div class="param-card full-width">
+          <label class="param-label">
+            <span class="param-icon">🔍</span> Focus Areas <span class="optional-tag">Optional — select all that apply</span>
+          </label>
+          <div class="focus-grid">
+            <label class="focus-check"><input type="checkbox" value="AI & Machine Learning"/> AI &amp; Machine Learning</label>
+            <label class="focus-check"><input type="checkbox" value="Cloud Architecture"/> Cloud Architecture</label>
+            <label class="focus-check"><input type="checkbox" value="Data Engineering"/> Data Engineering</label>
+            <label class="focus-check"><input type="checkbox" value="Security & Compliance"/> Security &amp; Compliance</label>
+            <label class="focus-check"><input type="checkbox" value="Hardware & Sensors"/> Hardware &amp; Sensors</label>
+            <label class="focus-check"><input type="checkbox" value="DevOps & Platform Eng"/> DevOps &amp; Platform Eng</label>
+            <label class="focus-check"><input type="checkbox" value="Business Model"/> Business Model</label>
+            <label class="focus-check"><input type="checkbox" value="Market Opportunity"/> Market Opportunity</label>
+            <label class="focus-check"><input type="checkbox" value="Scalability"/> Scalability</label>
+            <label class="focus-check"><input type="checkbox" value="User Experience"/> User Experience</label>
+          </div>
+        </div>
+
+        <!-- Analysis Depth -->
+        <div class="param-card">
+          <label class="param-label">
+            <span class="param-icon">📊</span> Analysis Depth
+          </label>
+          <div class="depth-options">
+            <label class="depth-opt" data-val="Quick">
+              <input type="radio" name="depth" value="Quick" hidden/>
+              <div class="depth-dot"></div>
+              <div>
+                <span class="depth-name">Quick</span>
+                <span class="depth-desc">Key highlights only</span>
+              </div>
+            </label>
+            <label class="depth-opt active" data-val="Standard">
+              <input type="radio" name="depth" value="Standard" checked hidden/>
+              <div class="depth-dot"></div>
+              <div>
+                <span class="depth-name">Standard</span>
+                <span class="depth-desc">Full scoring + analysis</span>
+              </div>
+            </label>
+            <label class="depth-opt" data-val="Deep Dive">
+              <input type="radio" name="depth" value="Deep Dive" hidden/>
+              <div class="depth-dot"></div>
+              <div>
+                <span class="depth-name">Deep Dive</span>
+                <span class="depth-desc">Exhaustive technical review</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Custom Question -->
+        <div class="param-card">
+          <label class="param-label">
+            <span class="param-icon">💬</span> Specific Question <span class="optional-tag">Optional</span>
+          </label>
+          <textarea class="param-textarea" id="paramQuestion"
+            placeholder="e.g. Is this ready for Series A funding? How does it compare to existing solutions in the market?"></textarea>
+        </div>
+
+      </div>
+
+      <!-- Summary bar -->
+      <div class="summary-bar" id="paramSummary"></div>
+
+      <div class="step-action">
+        <button class="btn-secondary" onclick="goToStep(1)">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M11 4 L6 9 L11 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Back
+        </button>
+        <button class="btn-primary" onclick="startAnalysis()">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="9" cy="9" r="8" stroke="white" stroke-width="1.5"/>
+            <path d="M6 9 L8 11 L12 7" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Run Analysis
+        </button>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- LOADING OVERLAY                           -->
+    <!-- ══════════════════════════════════════════ -->
     <div class="loading-overlay" id="loadingOverlay" hidden>
       <div class="loading-card">
-        <div class="spinner"></div>
-        <h3>Analyzing Content</h3>
+        <div class="spinner-ring"></div>
+        <h3>Analyzing with Claude claude-opus-4-7</h3>
         <p class="loading-msg" id="loadingMsg">Extracting video frames...</p>
-        <div class="loading-bar">
-          <div class="loading-fill" id="loadingFill"></div>
+        <div class="loading-steps" id="loadingSteps">
+          <div class="lstep done" id="ls1">📹 Video frames extracted</div>
+          <div class="lstep" id="ls2">🔍 Analyzing technology stack</div>
+          <div class="lstep" id="ls3">🌐 Correlating with tech landscape</div>
+          <div class="lstep" id="ls4">📊 Scoring dimensions</div>
+          <div class="lstep" id="ls5">✍️ Generating report</div>
         </div>
       </div>
     </div>
 
-    <!-- Results Section -->
-    <section class="results-section" id="resultsSection" hidden>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- STEP 3 — RESULTS                          -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="step-section" id="step3" hidden>
+
       <div class="results-header">
         <div>
           <h2>Innovation Analysis Report</h2>
-          <p class="results-subtitle" id="videoFilename"></p>
+          <p class="results-meta" id="resultsMeta"></p>
         </div>
-        <button class="btn-new" onclick="resetUI()">
+        <button class="btn-secondary" onclick="goToStep(1)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M2 8 A6 6 0 1 1 8 14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M2 5 L2 8 L5 8" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 8 A6 6 0 1 1 8 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M2 5 L2 8 L5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           New Analysis
         </button>
       </div>
 
-      <!-- Score Dashboard -->
-      <div class="score-dashboard">
-        <!-- Overall Score -->
-        <div class="overall-score-card">
-          <div class="gauge-container">
-            <svg class="gauge-svg" viewBox="0 0 200 120">
-              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="16" stroke-linecap="round"/>
-              <path id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#6366f1" stroke-width="16" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2" style="transition: stroke-dashoffset 1.5s ease, stroke 0.5s"/>
-              <text x="100" y="95" text-anchor="middle" class="gauge-score" id="gaugeScore">0</text>
-              <text x="100" y="112" text-anchor="middle" class="gauge-label">/ 100</text>
-            </svg>
-          </div>
-          <div class="recommendation-badge" id="recommendationBadge"></div>
-          <p class="executive-summary" id="executiveSummary"></p>
+      <!-- Score hero -->
+      <div class="score-hero">
+        <div class="gauge-card">
+          <svg class="gauge-svg" viewBox="0 0 220 130">
+            <path d="M 25 105 A 85 85 0 0 1 195 105" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="18" stroke-linecap="round"/>
+            <path id="gaugeFill" d="M 25 105 A 85 85 0 0 1 195 105" fill="none" stroke="#6366f1" stroke-width="18" stroke-linecap="round"
+              stroke-dasharray="267" stroke-dashoffset="267" style="transition:stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1),stroke .4s"/>
+            <text x="110" y="98" text-anchor="middle" class="gauge-num" id="gaugeScore">0</text>
+            <text x="110" y="116" text-anchor="middle" class="gauge-sub">out of 100</text>
+          </svg>
+          <div class="rec-badge" id="recBadge"></div>
         </div>
-
-        <!-- Dimension Scores -->
-        <div class="dimension-scores">
-          <div class="dimension-card">
-            <div class="dim-header">
-              <span class="dim-icon">⚡</span>
-              <span class="dim-name">Technology Currency</span>
-              <span class="dim-score" id="scoreTechCurrency">0</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-bar" id="barTechCurrency" style="width:0%"></div>
-            </div>
-          </div>
-          <div class="dimension-card">
-            <div class="dim-header">
-              <span class="dim-icon">💡</span>
-              <span class="dim-name">Innovation &amp; Novelty</span>
-              <span class="dim-score" id="scoreInnovation">0</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-bar" id="barInnovation" style="width:0%"></div>
-            </div>
-          </div>
-          <div class="dimension-card">
-            <div class="dim-header">
-              <span class="dim-icon">📈</span>
-              <span class="dim-name">Business Viability</span>
-              <span class="dim-score" id="scoreBusiness">0</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-bar" id="barBusiness" style="width:0%"></div>
-            </div>
-          </div>
-          <div class="dimension-card">
-            <div class="dim-header">
-              <span class="dim-icon">🔬</span>
-              <span class="dim-name">Technical Depth</span>
-              <span class="dim-score" id="scoreTechDepth">0</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-bar" id="barTechDepth" style="width:0%"></div>
-            </div>
-          </div>
+        <div class="summary-card">
+          <h3>Executive Summary</h3>
+          <p id="execSummary"></p>
         </div>
       </div>
 
-      <!-- Technology Stack -->
-      <div class="card" id="techStackCard">
-        <h3 class="card-title">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <rect x="1" y="1" width="16" height="4" rx="1" fill="#6366f1"/>
-            <rect x="1" y="7" width="16" height="4" rx="1" fill="#6366f1" opacity="0.7"/>
-            <rect x="1" y="13" width="10" height="4" rx="1" fill="#6366f1" opacity="0.4"/>
+      <!-- 4 dimension bars -->
+      <div class="dim-grid">
+        <div class="dim-card">
+          <div class="dim-top">
+            <span class="dim-emoji">⚡</span>
+            <span class="dim-label">Technology Currency</span>
+            <span class="dim-val" id="dv1">0<small>/25</small></span>
+          </div>
+          <div class="dim-track"><div class="dim-bar" id="db1"></div></div>
+        </div>
+        <div class="dim-card">
+          <div class="dim-top">
+            <span class="dim-emoji">💡</span>
+            <span class="dim-label">Innovation &amp; Novelty</span>
+            <span class="dim-val" id="dv2">0<small>/25</small></span>
+          </div>
+          <div class="dim-track"><div class="dim-bar" id="db2"></div></div>
+        </div>
+        <div class="dim-card">
+          <div class="dim-top">
+            <span class="dim-emoji">📈</span>
+            <span class="dim-label">Business Viability</span>
+            <span class="dim-val" id="dv3">0<small>/25</small></span>
+          </div>
+          <div class="dim-track"><div class="dim-bar" id="db3"></div></div>
+        </div>
+        <div class="dim-card">
+          <div class="dim-top">
+            <span class="dim-emoji">🔬</span>
+            <span class="dim-label">Technical Depth</span>
+            <span class="dim-val" id="dv4">0<small>/25</small></span>
+          </div>
+          <div class="dim-track"><div class="dim-bar" id="db4"></div></div>
+        </div>
+      </div>
+
+      <!-- Tech stack -->
+      <div class="result-card">
+        <div class="rcard-title">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="1" width="14" height="4" rx="1" fill="#6366f1"/>
+            <rect x="1" y="6.5" width="14" height="4" rx="1" fill="#6366f1" opacity=".6"/>
+            <rect x="1" y="12" width="9" height="3" rx="1" fill="#6366f1" opacity=".35"/>
           </svg>
           Technology Stack Identified
-        </h3>
+        </div>
         <div class="tech-tags" id="techTags"></div>
       </div>
 
-      <!-- Analysis Grid -->
-      <div class="analysis-grid">
-        <div class="card">
-          <h3 class="card-title">
-            <span class="card-icon green">✓</span>
-            Key Innovations
-          </h3>
-          <ul class="bullet-list green" id="keyInnovations"></ul>
+      <!-- 3-col lists -->
+      <div class="three-col">
+        <div class="result-card">
+          <div class="rcard-title green-title">✓ Key Innovations</div>
+          <ul class="rlist green-list" id="listInnovations"></ul>
         </div>
-        <div class="card">
-          <h3 class="card-title">
-            <span class="card-icon cyan">→</span>
-            Business Opportunities
-          </h3>
-          <ul class="bullet-list cyan" id="businessOpportunities"></ul>
+        <div class="result-card">
+          <div class="rcard-title cyan-title">→ Business Opportunities</div>
+          <ul class="rlist cyan-list" id="listOpportunities"></ul>
         </div>
-        <div class="card">
-          <h3 class="card-title">
-            <span class="card-icon amber">△</span>
-            Improvement Areas
-          </h3>
-          <ul class="bullet-list amber" id="improvementAreas"></ul>
+        <div class="result-card">
+          <div class="rcard-title amber-title">△ Improvement Areas</div>
+          <ul class="rlist amber-list" id="listImprovements"></ul>
         </div>
       </div>
 
-      <!-- Detailed Analysis Sections -->
-      <div class="detail-grid">
-        <div class="card">
-          <h3 class="card-title">Cutting-Edge Correlation</h3>
-          <p class="detail-text" id="cuttingEdgeCorrelation"></p>
+      <!-- Detail 2-col -->
+      <div class="two-col">
+        <div class="result-card">
+          <div class="rcard-title">Cutting-Edge Correlation</div>
+          <p class="rtext" id="rtCorrelation"></p>
         </div>
-        <div class="card">
-          <h3 class="card-title">Market Positioning</h3>
-          <p class="detail-text" id="marketPositioning"></p>
+        <div class="result-card">
+          <div class="rcard-title">Market Positioning</div>
+          <p class="rtext" id="rtMarket"></p>
         </div>
       </div>
 
-      <div class="card">
-        <h3 class="card-title">Technology Analysis</h3>
-        <p class="detail-text" id="technologyAnalysis"></p>
+      <div class="result-card">
+        <div class="rcard-title">Technology Analysis</div>
+        <p class="rtext" id="rtTechAnalysis"></p>
       </div>
 
-      <div class="card">
-        <h3 class="card-title">Business Case</h3>
-        <p class="detail-text" id="businessCase"></p>
+      <div class="result-card">
+        <div class="rcard-title">Business Case</div>
+        <p class="rtext" id="rtBusinessCase"></p>
       </div>
 
-      <!-- Expandable Detailed Analysis -->
-      <div class="card expandable-card">
-        <button class="expand-toggle" onclick="toggleExpand(this)">
-          <h3 class="card-title">Comprehensive Detailed Analysis</h3>
-          <svg class="expand-arrow" width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <div class="result-card expand-card" id="expandCard">
+        <button class="expand-btn" onclick="toggleExpand()">
+          <span class="rcard-title" style="margin:0">Comprehensive Detailed Analysis</span>
+          <svg class="expand-chevron" id="expandChevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M5 7 L10 12 L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <div class="expandable-content" id="detailedAnalysis"></div>
+        <div class="expand-body" id="expandBody">
+          <p class="rtext" id="rtDetailed"></p>
+        </div>
       </div>
+
     </section>
   </main>
 
