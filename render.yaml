@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: video-analyzer
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
